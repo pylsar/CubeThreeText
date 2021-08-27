@@ -1,0 +1,17 @@
+{
+  "name": "cube-three-text",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^2.5.1"
+  },
+  "dependencies": {
+    "three-js": "^79.0.0",
+    "three-orbit-controls": "^82.1.0",
+    "three": "^0.129.0"
+  }
+}
