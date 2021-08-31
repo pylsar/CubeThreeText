@@ -2,9 +2,10 @@ import "./style.css";
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { Group } from "three";
 
-let camera, scene, renderer;
-let cube, material;
+let camera, scene, renderer, textGeo, textMesh;
+let group, cube, material;
 
 let count = 0,
   cubeCamera1,
@@ -32,7 +33,7 @@ textureLoader.load("textures/1.jpg", function (texture) {
   animate();
 });
 
-function init(texture) {
+async function init(texture) {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -49,7 +50,6 @@ function init(texture) {
     1000
   );
 
-  //
 
   cubeRenderTarget1 = new THREE.WebGLCubeRenderTarget(256, {
     format: THREE.RGBFormat,
@@ -69,7 +69,6 @@ function init(texture) {
 
   cubeCamera2 = new THREE.CubeCamera(1, 1000, cubeRenderTarget2);
 
-  //
 
   material = new THREE.MeshBasicMaterial({
     envMap: cubeRenderTarget2.texture,
@@ -77,8 +76,54 @@ function init(texture) {
     reflectivity: 1
   });
 
+  group = new THREE.Group();
+
   cube = new THREE.Mesh(new THREE.BoxGeometry(40, 40, 40), material);
-  scene.add(cube);
+  group.add(cube);
+
+  //добавляем текст
+  // грузим фонты
+
+  function loadFont(fontName, fontWeight) {
+    const loader = new THREE.FontLoader();
+    return new Promise((resolve) => {
+      loader.load(
+        "fonts/" + fontName + "_" + fontWeight + ".typeface.json",
+        resolve
+      );
+    });
+  }
+  const font = await loadFont("helvetiker", "bold");
+  textGeo = new THREE.TextGeometry("text", {
+    font: font,
+    size: 10,
+    height: 5,
+    curveSegments: 4,
+    bevelThickness: 2,
+    bevelSize: 1.5,
+    bevelEnabled: true
+  });
+  textGeo.computeBoundingBox();
+  const centerOffset =
+    -0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+  textMesh = new THREE.Mesh(textGeo, [
+    new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true }),// текст
+    new THREE.MeshPhongMaterial({ color: 0x000000 }) //границы текста
+  ]);
+  textMesh.position.x = centerOffset;
+  textMesh.position.y = 0;
+  textMesh.position.z = 20;
+
+  textMesh.rotation.x = 0;
+  textMesh.rotation.y = Math.PI * 2;
+
+  group.add(textMesh);
+
+  const light = new THREE.AmbientLight(0xffffff);
+  scene.add(light);
+
+  scene.add(group);
 
   document.addEventListener("pointerdown", onPointerDown);
   document.addEventListener("wheel", onDocumentMouseWheel);
@@ -92,7 +137,7 @@ function onWindowResized() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
 }
-
+// крутим вертим
 function onPointerDown(event) {
   event.preventDefault();
 
@@ -138,12 +183,12 @@ function render() {
   phi = THREE.MathUtils.degToRad(90 - lat);
   theta = THREE.MathUtils.degToRad(lon);
 
-  cube.position.x = Math.cos(time * 0.001) * 1;
-  cube.position.y = Math.sin(time * 0.001) * 1;
-  cube.position.z = Math.sin(time * 0.001) * 1;
+  group.position.x = Math.cos(time * 0.001) * 1;
+  group.position.y = Math.sin(time * 0.001) * 1;
+  group.position.z = Math.sin(time * 0.001) * 1;
 
-  cube.rotation.x += 0.002;
-  cube.rotation.y += 0.003;
+  group.rotation.x += 0.002;
+  group.rotation.y += 0.003;
 
   camera.position.x = 100 * Math.sin(phi) * Math.cos(theta);
   camera.position.y = 100 * Math.cos(phi);
@@ -151,7 +196,6 @@ function render() {
 
   camera.lookAt(scene.position);
 
-  // pingpong
 
   if (count % 2 === 0) {
     cubeCamera1.update(renderer, scene);
